@@ -18,6 +18,8 @@ class TABLELINESREMOVER:
         self.Dilate_Combined_Image()
         self.Subtract_Combined_And_Dilated_Image_From_Original_Image()
         self.Remove_Noise_With_Erode_And_Dilate()
+        self.store_process_image('image_without_noise.jpg', self.image_without_lines_noise_removed)
+        self.store_process_image('combine_line.jpg',self.combined_image)
         return self.image_without_lines_noise_removed
 
     def Image_To_Grayscale(self):
@@ -60,3 +62,6 @@ class TABLELINESREMOVER:
         self.image_without_lines_noise_removed = cv2.erode(self.image_without_lines, kernel, iterations=1)
         self.image_without_lines_noise_removed = cv2.dilate(self.image_without_lines_noise_removed, kernel, iterations=1)
 
+    def store_process_image(self, file_name, image):
+        path = "./process_images/table_lines_remover/" + file_name
+        cv2.imwrite(path, image)

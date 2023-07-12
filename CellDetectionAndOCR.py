@@ -11,11 +11,12 @@ from PIL import Image
 import Utils
 import time
 from time import process_time
+import TableExtractor as te 
 
 class OCR:
 
-    def __init__(self, image, original_image, image_path):
-        self.thresholded_image = image
+    def __init__(self, original_image, image_path):
+        # self.thresholded_image = image
         self.original_image = original_image
         self.image_path = image_path
 
@@ -24,6 +25,10 @@ class OCR:
         self.Threshold_Image()
         self.Invert_Image()
         self.Dilate_Image()
+        self.Erode_Vertical_Lines()
+        self.Erode_Horizontal_Lines()
+        self.Combine_Eroded_Images()
+        self.Dilate_Combined_Image()
         self.Find_Contours()
         self.Filter_Contours()
         self.Convert_Contour_To_Bounding_Boxes()
@@ -34,7 +39,11 @@ class OCR:
         self.Crop_Bounding_Box_And_Ocr()
         self.Csv_Generator()
         self.Create_Json()
+        self.store_process_image('bounding_box.jpg', self.image_with_all_bounding_boxes)
+        self.store_process_image('find_contour.jpg',self.image_with_all_contours)
+        self.store_process_image('rec_contour.jpg',self.image_with_only_rectangular_contours)
 
+        # self.store_process_image('debug.jpg',self.dilated_image)
     def Convert_Image_To_Grayscale(self):
         self.grayscale_image = cv2.cvtColor(self.original_image, cv2.COLOR_BGR2GRAY)
 
@@ -50,11 +59,35 @@ class OCR:
     def Dilate_Image(self):
         self.dilated_image = cv2.dilate(self.inverted_image, None, iterations=5)
 
+    def Erode_Vertical_Lines(self):
+        hor = np.array([[1,1,1,1,1,1]])
+        self.vertical_lines_eroded_image = cv2.erode(self.inverted_image, hor, iterations=10)
+        self.vertical_lines_eroded_image = cv2.dilate(self.vertical_lines_eroded_image, hor, iterations=10)
+
+
+    def Erode_Horizontal_Lines(self):
+        ver = np.array([[1],
+               [1],
+               [1],
+               [1],
+               [1],
+               [1],
+               [1]])
+        self.horizontal_lines_eroded_image = cv2.erode(self.inverted_image, ver, iterations=10)
+        self.horizontal_lines_eroded_image = cv2.dilate(self.horizontal_lines_eroded_image, ver, iterations=10)
+    
+    def Combine_Eroded_Images(self):
+        self.combined_image = cv2.add(self.vertical_lines_eroded_image, self.horizontal_lines_eroded_image)
+
+    def Dilate_Combined_Image(self):
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+        self.combined_image_dilated = cv2.dilate(self.combined_image, None , iterations=5)
+
     def Find_Contours(self):
-        self.contours, self.hierarchy = cv2.findContours(self.dilated_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        self.contours, self.hierarchy = cv2.findContours(self.combined_image_dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         self.image_with_all_contours = self.original_image.copy()
         cv2.drawContours(self.image_with_all_contours, self.contours, -1, (0, 255, 0), 3)
-
+    
     def Filter_Contours(self):
         self.rectangular_contours = []
         count = 0
@@ -179,5 +212,8 @@ class OCR:
         print ("OCR:", end - start)
         return output
 
+    def store_process_image(self, file_name, image):
+        path = "./process_images/ocr/" + file_name
+        cv2.imwrite(path, image)
 
 

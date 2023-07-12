@@ -21,6 +21,7 @@ class TABLEEXTRACTOR:
         self.Calculate_New_Width_And_Height_Of_Image()
         self.Apply_Perspective_Transform()
         self.Add_10_Percent_Padding()
+        self.store_process_image('corrected_image.jpg', self.perspective_corrected_image_with_padding)
         return self.perspective_corrected_image_with_padding
 
     def Read_Image(self):
@@ -133,4 +134,6 @@ class TABLEEXTRACTOR:
 
         return rect
     
-
+    def store_process_image(self, file_name, image):
+        path = "./process_images/table_extractor/" + file_name
+        cv2.imwrite(path, image)
